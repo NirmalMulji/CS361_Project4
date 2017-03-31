@@ -1,43 +1,56 @@
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-
 import java.io.*;
 import java.util.*;
 
 public class Encoder {
     public static double totalBits1 = 0;
+    public static double totalBits2 = 0;
     public static double entropy1 = 0;
-    public static double entropy2 = 0;
+    public static int total = 0;
+    public static int k = 0;
 
     public static void main(String[] args) throws IOException {
         int[] freq = new int[26];
         double[] prob1 = new double[26];
 
-        Scanner scanner = new Scanner(new File("skrt.txt"));
+        String frequenciesFileName = args[0];
+        int charsToGen = Integer.parseInt(args[1]);
+        if(charsToGen % 2 != 0) {
+            charsToGen++;
+            k = charsToGen;
+        } else {
+            k = charsToGen;
+        }
 
-        int total = 0;
+        Scanner scanner = new Scanner(new File(frequenciesFileName));
+
         int count = 0;
         while(scanner.hasNextInt()) {
             int nextNumber = scanner.nextInt();
             prob1[count] = nextNumber;
             freq[count] = nextNumber;
-            total += nextNumber;
+            total+=freq[count];
             count++;
         }
 
-        for(int i = 0; i < prob1.length; i ++) {
+        for(int i = 0; i < prob1.length; i++) {
             prob1[i] = prob1[i] / total;
         }
 
         entropy1 = entropy(prob1);
 
+        /**********************************************************************
+         *
+         * Single Symbol Alphabet
+         *
+         ***********************************************************************/
+
         char one = 'A';
-        LinkedHashMap<Character, Integer> map = new LinkedHashMap<Character, Integer>();
+        LinkedHashMap<String, Integer> map = new LinkedHashMap<String, Integer>();
         for(int i = 0; i < freq.length; i++) {
             if(freq[i] != 0)
-                map.put(one, freq[i]);
+                map.put(Character.toString(one), freq[i]);
             one++;
         }
-
 
         Huffman app = new Huffman(map);
 
@@ -45,36 +58,47 @@ public class Encoder {
 
         app.displayQueue();
 
+        System.out.println("Single symbol encoding: ");
+        System.out.println();
+
         app.buildCodeMap(finalTree);
+
+        System.out.println();
 
         outputToFile(prob1);
 
-        Map<Character, String> codeMap = app.codeMap;
+        Map<String, String> codeMap = app.codeMap;
 
         encode(codeMap);
 
-        Map<String, Character> reverseCodeMap = new HashMap<>();
+        Map<String, String> reverseCodeMap = new HashMap<>();
 
-        for(Map.Entry<Character, String> value : codeMap.entrySet()) {
+        for(Map.Entry<String, String> value : codeMap.entrySet()) {
             reverseCodeMap.put(value.getValue(), value.getKey());
         }
 
         decode(reverseCodeMap);
 
-        HashMap<Character, Integer> numberToSymbol = new HashMap<Character, Integer>();
+        /**********************************************************************
+         *
+         * Two Symbol Alphabet
+         *
+         ***********************************************************************/
 
-        int huffSymbol = 1;
-        LinkedHashMap<Character, Integer> huffMap = new LinkedHashMap();
+        LinkedHashMap<String, Integer> huffMap = new LinkedHashMap();
+        char huffSymbol = 'A';
+        char huffSymbol2 = 'A';
         for(int i = 0; i < freq.length; i++){
             for (int j = 0; j < freq.length; j++){
                 if(freq[i] != 0 && freq[j] != 0) {
-                    char huffSymbol2 = (char) (huffSymbol + '0');
-                    map.put(huffSymbol2, freq[i] * freq[j]);
-                    System.out.println("Symbol: " + huffSymbol2 + " Freq: " + freq[i] * freq[j]);
+                    huffMap.put(Character.toString(huffSymbol) + Character.toString(huffSymbol2), freq[i] * freq[j]);
                 }
 
-                huffSymbol++;
+                huffSymbol2++;
             }
+
+            huffSymbol2 = 'A';
+            huffSymbol++;
         }
 
         Huffman app2 = new Huffman(huffMap);
@@ -83,37 +107,26 @@ public class Encoder {
 
         app2.displayQueue();
 
+        System.out.println("Two symbol encoding: ");
+        System.out.println();
+
         app2.buildCodeMap(finalTree2);
 
-        Map<Character, String> codeMap2 = app2.codeMap;
+        System.out.println();
 
-        HashMap<Integer, String>  pairsMapping = new HashMap<Integer, String>();
-        char first = 'A';
-        char second = 'A';
-        int huffSymbol2 = 1;
-        for (int i = 0; i < 26; i++) {
-            for (int j = 0; j < 26; j++) {
-                pairsMapping.put(huffSymbol2, "" + first + second);
-                //System.out.println(huffSymbol2 + " : " + first + second);
-                second += 1;
-                huffSymbol2++;
-            }
-            second = 'A';
-            first += 1;
+        Map<String, String> codeMap2 = app2.codeMap;
+
+        encode2(codeMap2);
+
+        Map<String, String> reverseCodeMap2 = new HashMap<>();
+
+        for(Map.Entry<String, String> value : codeMap2.entrySet()) {
+            reverseCodeMap2.put(value.getValue(), value.getKey());
         }
 
-        encode(codeMap);
-
-       // Map<String, Character> reverseCodeMap = new HashMap<>();
-
-        for(Map.Entry<Character, String> value : codeMap.entrySet()) {
-            reverseCodeMap.put(value.getValue(), value.getKey());
-        }
-
-        decode(reverseCodeMap);
+        decode2(reverseCodeMap2);
 
         printResults();
-
     }
 
     public static double entropy(double[] prob) {
@@ -126,10 +139,7 @@ public class Encoder {
         return logSum;
     }
 
-
     public static void outputToFile(double[] prob) throws IOException {
-
-
         double[] ranges = new double[26];
         for(int i = 0; i < 26; i++) {
             if(i != 0 && prob[i] != 0) {
@@ -150,7 +160,7 @@ public class Encoder {
         }
 
         Writer output = new FileWriter("testText.txt");
-        for(int i = 0; i < 10000; i++) {
+        for(int i = 0; i < k; i++) {
             int k =  randInt();
             for (int j = 0; j < 26; j++) {
                 if(k < ranges[j]) {
@@ -169,22 +179,23 @@ public class Encoder {
         return rand.nextInt(100);
     }
 
-    public static void encode(Map<Character, String> codeMap) throws IOException {
+    public static void encode(Map<String, String> codeMap) throws IOException {
         // Now use codeMap to get encoding of characters
         Writer output = new FileWriter("testText.enc1");
 
         Reader reader = new InputStreamReader(new FileInputStream("testText.txt"));
-        int c;
 
+        int c;
         while ((c = reader.read()) != -1) {
-            String str = codeMap.get((char) c);
+            String str = codeMap.get(Character.toString((char) c));
             totalBits1 += str.length();
             output.write(str + "");
         }
+
         output.close();
     }
 
-    public static void decode(Map<String, Character> reverseCodeMap) throws IOException{
+    public static void decode(Map<String, String> reverseCodeMap) throws IOException {
         Reader reader = new InputStreamReader(new FileInputStream("testText.enc1"));
         Writer output = new FileWriter("testText.dec1");
 
@@ -192,7 +203,7 @@ public class Encoder {
         String string = "";
 
         while ((bit = reader.read()) != -1) {
-            string += (char) bit;
+            string += Character.toString((char) bit);
             if (reverseCodeMap.containsKey(string)) {
                 output.write(reverseCodeMap.get(string));
                 string = "";
@@ -202,9 +213,67 @@ public class Encoder {
         output.close();
     }
 
+    public static void encode2(Map<String, String> codeMap) throws IOException {
+        // Now use codeMap to get encoding of characters
+        Writer output = new FileWriter("testText.enc2");
+        Reader reader = new InputStreamReader(new FileInputStream("testText.txt"));
+
+        int c;
+        int d;
+        while ((c = reader.read()) != -1 && (d = reader.read()) != -1) {
+            String str = codeMap.get(Character.toString((char) c) + Character.toString((char) d));
+            totalBits2 += str.length();
+            output.write(str + "");
+        }
+
+        output.close();
+    }
+
+    public static void decode2(Map<String, String> reverseCodeMap) throws IOException {
+        Reader reader = new InputStreamReader(new FileInputStream("testText.enc2"));
+        Writer output = new FileWriter("testText.dec2");
+
+        int bit;
+        String string = "";
+
+        while ((bit = reader.read()) != -1) {
+            string += Character.toString((char) bit);
+            if (reverseCodeMap.containsKey(string)) {
+                output.write(reverseCodeMap.get(string));
+                string = "";
+            }
+        }
+
+        output.close();
+    }
+
     public static void printResults(){
-        double averageBits1 = totalBits1 / 10000;
-        System.out.println("average bits: " + averageBits1);
-        System.out.println("entropy1: " + entropy1);
+        double averageBits1 = totalBits1 / k;
+        double averageBits2 = totalBits2 / k;
+
+        System.out.println("-----------------------------------------------------");
+        System.out.println("Summary of results: ");
+        System.out.println();
+
+        System.out.printf("Computed entropy of the language: %.3f\n", entropy1);
+
+        System.out.println();
+
+        System.out.printf("1-symbol actual average bits/symbol: %.3f\n", averageBits1);
+
+        double percentageDiff1 = (averageBits1 - entropy1) / entropy1 * 100;
+        System.out.printf("Percent difference 1-symbol vs theoretical: %%%.3f\n", percentageDiff1);
+
+        System.out.println();
+
+        System.out.printf("2-symbol actual average bits/symbol: %.3f\n", averageBits2);
+
+        double percentageDiff2 = (averageBits2 - entropy1) / entropy1 * 100;
+        System.out.printf("Percent difference 2-symbol vs theoretical: %%%.3f\n", percentageDiff2);
+
+        System.out.println();
+
+        double percentageDiff3 = Math.abs((averageBits1 - averageBits2) / averageBits2 * 100);
+        System.out.printf("Percent difference 2-symbol vs 1-symbol: %%%.3f\n", percentageDiff3);
     }
 }

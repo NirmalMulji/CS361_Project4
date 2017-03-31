@@ -9,12 +9,12 @@ import java.util.*;
 import java.lang.*;
 
 class Node implements Comparable<Node> {
-    Character character;
+    String character;
     Integer frequency;
     Node left;
     Node right;
 
-    Node(Character character, Integer frequency) {
+    Node(String character, Integer frequency) {
         this.character = character;
         this.frequency = frequency;
     }
@@ -32,26 +32,26 @@ class Node implements Comparable<Node> {
 
 class Huffman
 {
-    Map<Character, Integer> characterMap; // character - frequency
+    Map<String, Integer> characterMap; // character - frequency
     PriorityQueue<Node> tree;
-    Map<Character, String> codeMap;      // character - codeword
+    Map<String, String> codeMap;      // character - codeword
 
-    Huffman(LinkedHashMap<Character, Integer> map) {
+    Huffman(LinkedHashMap<String, Integer> map) {
         characterMap = map;
 
         tree = new PriorityQueue<Node>();
-        codeMap = new HashMap<Character, String>();
+        codeMap = new HashMap<String, String>();
     }
 
     public Node buildTree() {
-        for(Map.Entry<Character, Integer> entry : characterMap.entrySet()) {
+        for(Map.Entry<String, Integer> entry : characterMap.entrySet()) {
             tree.add(new Node(entry.getKey(), entry.getValue()));
         }
 
         while(tree.size() > 1) {
             Node node1 = tree.poll();
             Node node2 = tree.poll();
-            Node newNode = new Node('*', node1.frequency + node2.frequency);
+            Node newNode = new Node("*", node1.frequency + node2.frequency);
             newNode.left = node1;
             newNode.right = node2;
             tree.add(newNode);
@@ -60,8 +60,8 @@ class Huffman
         // One remaining node is the root of final tree
         Node finalTree = tree.poll();
 
-        System.out.println("\nHuffman Tree");
-        displayTree(finalTree);
+        //       System.out.println("\nHuffman Tree");
+//        displayTree(finalTree);
         return finalTree;
     }
 
@@ -78,7 +78,6 @@ class Huffman
         int[] arr = new int[characterMap.size()];
         int top = 0;
 
-        System.out.println("\nEncoded Mapping");
         printCodes(root, arr, top);
     }
 
