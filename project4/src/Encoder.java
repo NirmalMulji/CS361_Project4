@@ -85,7 +85,7 @@ public class Encoder {
          *
          ***********************************************************************/
 
-        LinkedHashMap<String, Integer> huffMap = new LinkedHashMap();
+        LinkedHashMap<String, Integer> huffMap = new LinkedHashMap<String, Integer>();
         char huffSymbol = 'A';
         char huffSymbol2 = 'A';
         for(int i = 0; i < freq.length; i++){
